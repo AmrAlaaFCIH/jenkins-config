@@ -1,0 +1,52 @@
+version: '3.8'
+services:
+  nexus:
+    image: sonatype/nexus3
+    container_name: nexus
+    ports:
+      - 8081:8081
+      - 8082:8082
+      - 8083:8083
+    volumes:
+      - nexus-data:/nexus-data
+
+  docker:
+    container_name: docker
+    image: docker:dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+      - docker-content:/var/lib/docker
+      - jenkins-docker-certs:/certs/client
+      - jenkins_home:/var/jenkins_home
+
+
+  jenkins:
+    container_name: jenkins
+    image: jenkins/docker:latest
+    environment:
+      DOCKER_HOST: tcp://docker:2376
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: 1
+    ports:
+      - 8080:8080
+      - 50000:50000
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+    restart: on-failure
+
+volumes:
+  docker-content:
+    external: true
+  nexus-data:
+    external: true
+  jenkins-docker-certs:
+    external: true
+  jenkins_home:
+    external: true
+
+networks:
+  default:
+    name: 'jenkins-docker-network'
